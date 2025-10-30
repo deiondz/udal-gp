@@ -8,6 +8,9 @@ export const env = createEnv({
 	 */
 	server: {
 		NODE_ENV: z.enum(["development", "test", "production"]),
+		MONGODB_URI: z.string(),
+		MONGODB_DB: z.string(),
+		BETTER_AUTH_SECRET: z.string(),
 	},
 
 	/**
@@ -16,7 +19,7 @@ export const env = createEnv({
 	 * `NEXT_PUBLIC_`.
 	 */
 	client: {
-		// NEXT_PUBLIC_CLIENTVAR: z.string(),
+		NEXT_PUBLIC_BETTER_AUTH_URL: z.string(),
 	},
 
 	/**
@@ -25,7 +28,10 @@ export const env = createEnv({
 	 */
 	runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
-		// NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+		MONGODB_URI: process.env.MONGODB_URI,
+		MONGODB_DB: process.env.MONGODB_DB,
+		BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+		NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
