@@ -113,9 +113,6 @@ export function SignUpForm({
 					<h1 className="text-3xl font-bold tracking-tight">
 						Create your account
 					</h1>
-					<p className="text-muted-foreground text-sm">
-						Join us today and get started in seconds
-					</p>
 				</div>
 
 				<Field data-invalid={!!errors.name}>
