@@ -26,3 +26,9 @@ export const gramPanchayatSchema = z.object({
 
 export type GramPanchayat = z.infer<typeof gramPanchayatSchema>
 
+export type CreateGramPanchayatRequest = {
+  email: string
+  password: string
+  data: Omit<GramPanchayat, "id" | "dateCreated" | "lastUpdated">
+}
+

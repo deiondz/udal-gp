@@ -18,19 +18,19 @@ export async function getGramPanchayatById(
 }
 
 export async function createGramPanchayat(
-  gpData: Omit<GramPanchayat, "id" | "dateCreated" | "lastUpdated">,
+  request: { email: string; password: string; data: Omit<GramPanchayat, "id" | "dateCreated" | "lastUpdated"> },
 ): Promise<GramPanchayat> {
   // In a real implementation, this would save to database
   const newId = Math.max(...data.map((gp) => gp.id)) + 1
-  const now = new Date().toISOString().split("T")[0]
-  
+  const now = new Date().toISOString().split("T")[0] ?? new Date().toISOString().slice(0, 10)
+
   const newGP: GramPanchayat = {
-    ...gpData,
+    ...request.data,
     id: newId,
     dateCreated: now,
     lastUpdated: now,
   }
-  
+
   return gramPanchayatSchema.parse(newGP)
 }
 
@@ -40,20 +40,20 @@ export async function updateGramPanchayat(
 ): Promise<GramPanchayat | null> {
   const item = data.find((gp) => gp.id === id)
   if (!item) return null
-  
+
   const updated = {
     ...item,
     ...updates,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: new Date().toISOString().split("T")[0] ?? new Date().toISOString().slice(0, 10),
   }
-  
+
   return gramPanchayatSchema.parse(updated)
 }
 
 export async function deleteGramPanchayat(id: number): Promise<boolean> {
   const index = data.findIndex((gp) => gp.id === id)
   if (index === -1) return false
-  
+
   // In a real implementation, this would delete from database
   return true
 }
@@ -65,30 +65,30 @@ export async function mapMRF(
 ): Promise<GramPanchayat | null> {
   const item = data.find((gp) => gp.id === gpId)
   if (!item) return null
-  
+
   const updated = {
     ...item,
     mrfMapped: true,
     mrfUnitId: mrfId,
     mrfUnitName: mrfName,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: new Date().toISOString().split("T")[0] ?? new Date().toISOString().slice(0, 10),
   }
-  
+
   return gramPanchayatSchema.parse(updated)
 }
 
 export async function unmapMRF(gpId: number): Promise<GramPanchayat | null> {
   const item = data.find((gp) => gp.id === gpId)
   if (!item) return null
-  
+
   const updated = {
     ...item,
     mrfMapped: false,
     mrfUnitId: null,
     mrfUnitName: null,
-    lastUpdated: new Date().toISOString().split("T")[0],
+    lastUpdated: new Date().toISOString().split("T")[0] ?? new Date().toISOString().slice(0, 10),
   }
-  
+
   return gramPanchayatSchema.parse(updated)
 }
 

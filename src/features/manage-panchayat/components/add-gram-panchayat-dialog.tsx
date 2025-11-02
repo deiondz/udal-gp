@@ -1,359 +1,375 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useIsMobile } from "~/hooks/use-mobile"
-import { Button } from "~/components/ui/button"
+import { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useIsMobile } from "~/hooks/use-mobile";
+import { Button } from "~/components/ui/button";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "~/components/ui/drawer"
-import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
+	Drawer,
+	DrawerClose,
+	DrawerContent,
+	DrawerDescription,
+	DrawerFooter,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "~/components/ui/drawer";
+import { Input } from "~/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
-import { Separator } from "~/components/ui/separator"
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "~/components/ui/select";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "~/components/ui/tabs"
-import { IconPlus } from "@tabler/icons-react"
-import { createGramPanchayat } from "../actions"
-import { toast } from "sonner"
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+	FormDescription,
+} from "~/components/ui/form";
+import { IconPlus } from "@tabler/icons-react";
+import { createGramPanchayat } from "../actions";
+import { toast } from "sonner";
+import { MRF_UNIT_MAP } from "../constants";
+import type { CreateGramPanchayatRequest } from "../schema";
+
+const formSchema = z.object({
+	email: z
+		.string()
+		.email("Please enter a valid email address")
+		.min(1, "Email is required"),
+	password: z.string().min(8, "Password must be at least 8 characters long"),
+	name: z.string().min(1, "Name is required"),
+	taluk: z.string().min(1, "Taluk is required"),
+	village: z.string().min(1, "Village is required"),
+	sarpanch: z.string().min(1, "Sarpanch is required"),
+	status: z.enum(["Active", "Inactive"]),
+	mrfUnitId: z.string(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface AddGramPanchayatDialogProps {
-  onSuccess?: () => void
+	onSuccess?: () => void;
 }
 
 export function AddGramPanchayatDialog({
-  onSuccess,
+	onSuccess,
 }: AddGramPanchayatDialogProps) {
-  const isMobile = useIsMobile()
-  const [isOpen, setIsOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+	const isMobile = useIsMobile();
+	const [isOpen, setIsOpen] = useState(false);
+	const firstInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsSubmitting(true)
+	const form = useForm<FormValues>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			email: "",
+			password: "",
+			name: "",
+			taluk: "",
+			village: "",
+			sarpanch: "",
+			status: "Active",
+			mrfUnitId: "none",
+		},
+	});
 
-    const formData = new FormData(event.currentTarget)
-    const mrfUnitId = formData.get("mrfUnitId") as string | null
-    const mrfMapped = mrfUnitId !== null && mrfUnitId !== "" && mrfUnitId !== "none"
+	async function onSubmit(values: FormValues) {
+		const mrfUnitId = values.mrfUnitId;
+		const mrfMapped =
+			mrfUnitId !== null && mrfUnitId !== "" && mrfUnitId !== "none";
 
-    // Map MRF ID to name
-    const mrfUnitMap: Record<string, string> = {
-      "MRF-001": "Anjanapura MRF Unit",
-      "MRF-002": "Chikkaballapura MRF Unit",
-      "MRF-003": "Hosakote MRF Unit",
-      "MRF-004": "Kanakapura MRF Unit",
-      "MRF-005": "Nelamangala MRF Unit",
-      "MRF-006": "Ramanagara MRF Unit",
-      "MRF-007": "Devanahalli MRF Unit",
-      "MRF-008": "Hoskote MRF Unit",
-      "MRF-009": "Kolar MRF Unit",
-      "MRF-010": "Chintamani MRF Unit",
-    }
+		const gpData = {
+			name: values.name,
+			taluk: values.taluk,
+			village: values.village,
+			sarpanch: values.sarpanch,
+			status: values.status,
+			mrfUnitId: mrfMapped && mrfUnitId ? mrfUnitId : null,
+			mrfUnitName:
+				mrfMapped && mrfUnitId ? (MRF_UNIT_MAP[mrfUnitId] ?? null) : null,
+			mrfMapped,
+		};
 
-    const newGP = {
-      name: formData.get("name") as string,
-      taluk: formData.get("taluk") as string,
-      village: formData.get("village") as string,
-      sarpanch: formData.get("sarpanch") as string,
-      status: formData.get("status") as "Active" | "Inactive",
-      mrfUnitId: mrfMapped && mrfUnitId ? mrfUnitId : null,
-      mrfUnitName: mrfMapped && mrfUnitId ? mrfUnitMap[mrfUnitId] ?? null : null,
-      mrfMapped,
-      households: Number(formData.get("households")),
-      shops: Number(formData.get("shops")),
-      institutions: Number(formData.get("institutions")),
-      swmSheds: Number(formData.get("swmSheds")),
-      wetWaste: Number(formData.get("wetWaste")),
-      dryWaste: Number(formData.get("dryWaste")),
-      sanitaryWaste: Number(formData.get("sanitaryWaste")),
-      revenue: Number(formData.get("revenue")),
-      complianceScore: Number(formData.get("complianceScore")),
-    }
+		const requestData: CreateGramPanchayatRequest = {
+			email: values.email,
+			password: values.password,
+			data: gpData,
+		};
 
-    try {
-      await createGramPanchayat(newGP)
-      toast.success("Gram Panchayat created successfully")
-      setIsOpen(false)
-      // Reset form
-      event.currentTarget.reset()
-      onSuccess?.()
-    } catch (error) {
-      toast.error("Failed to create Gram Panchayat")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+		try {
+			await createGramPanchayat(requestData);
+			toast.success("Gram Panchayat created successfully");
+			form.reset();
+			setIsOpen(false);
+			onSuccess?.();
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to create Gram Panchayat";
+			toast.error(errorMessage);
+		}
+	}
 
-  const triggerButton = (
-    <Button variant="outline" size="sm">
-      <IconPlus />
-      <span className="hidden lg:inline">Add Gram Panchayat</span>
-      <span className="lg:hidden">Add</span>
-    </Button>
-  )
+	const triggerButton = (
+		<Button variant="outline" size="sm" aria-label="Add new Gram Panchayat">
+			<IconPlus aria-hidden="true" />
+			<span className="hidden lg:inline">Add Gram Panchayat</span>
+			<span className="lg:hidden">Add</span>
+		</Button>
+	);
 
-  return (
-    <Drawer open={isOpen} onOpenChange={setIsOpen} direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
-      <DrawerContent >
-        <DrawerHeader className="gap-1">
-          <DrawerTitle>Add New Gram Panchayat</DrawerTitle>
-          <DrawerDescription>
-            Create a new Gram Panchayat entry with basic information and performance metrics
-          </DrawerDescription>
-        </DrawerHeader>
-        <form id="add-gram-panchayat-form" onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          <Tabs defaultValue="basic-info" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic-info">Basic Information</TabsTrigger>
-              <TabsTrigger value="performance">Performance Metrics</TabsTrigger>
-            </TabsList>
+	return (
+		<Drawer
+			open={isOpen}
+			onOpenChange={setIsOpen}
+			direction={isMobile ? "bottom" : "right"}
+		>
+			<DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
+			<DrawerContent>
+				<DrawerHeader className="gap-1 px-4 sm:px-6">
+					<DrawerTitle>Add New Gram Panchayat</DrawerTitle>
+					<DrawerDescription>
+						Create a new Gram Panchayat entry with essential information
+					</DrawerDescription>
+				</DrawerHeader>
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="flex flex-col gap-6 overflow-y-auto px-4 pb-4 text-sm sm:px-6"
+					>
+						<div className="space-y-4">
+							<h3 className="text-sm font-semibold text-foreground">
+								Account Credentials
+							</h3>
+							<div className="grid grid-cols-1 gap-4 ">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Email <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													type="email"
+													placeholder="Enter email address"
+													{...field}
+													ref={firstInputRef}
+													aria-required="true"
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Password <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Enter password"
+													{...field}
+													aria-required="true"
+												/>
+											</FormControl>
+											<FormDescription>
+												Must be at least 8 characters long
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
 
-            <TabsContent value="basic-info" className="flex flex-col gap-4 mt-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="new-name">Name</Label>
-                <Input
-                  id="new-name"
-                  name="name"
-                  required
-                  placeholder="Enter Gram Panchayat name"
-                />
-              </div>
+						<div className="space-y-4">
+							<h3 className="text-sm font-semibold text-foreground">
+								Gram Panchayat Information
+							</h3>
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											Name <span className="text-destructive">*</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Enter Gram Panchayat name"
+												{...field}
+												aria-required="true"
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-taluk">Taluk</Label>
-                  <Input
-                    id="new-taluk"
-                    name="taluk"
-                    required
-                    placeholder="Enter Taluk name"
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-village">Village</Label>
-                  <Input
-                    id="new-village"
-                    name="village"
-                    required
-                    placeholder="Enter Village name"
-                  />
-                </div>
-              </div>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="taluk"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Taluk <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter Taluk name"
+													{...field}
+													aria-required="true"
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="village"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Village <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter Village name"
+													{...field}
+													aria-required="true"
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-sarpanch">Sarpanch</Label>
-                  <Input
-                    id="new-sarpanch"
-                    name="sarpanch"
-                    required
-                    placeholder="Enter Sarpanch name"
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-status">Status</Label>
-                  <Select name="status" defaultValue="Active">
-                    <SelectTrigger id="new-status" className="w-full">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="sarpanch"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Sarpanch <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter Sarpanch name"
+													{...field}
+													aria-required="true"
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="status"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Status <span className="text-destructive">*</span>
+											</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger aria-required="true">
+														<SelectValue placeholder="Select status" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="Active">Active</SelectItem>
+													<SelectItem value="Inactive">Inactive</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
 
-              <Separator />
+						<div className="space-y-4">
+							<h3 className="text-sm font-semibold text-foreground">
+								MRF Unit Mapping
+							</h3>
+							<FormField
+								control={form.control}
+								name="mrfUnitId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>MRF Unit</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select MRF Unit" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="none">Not Mapped</SelectItem>
+													{Object.entries(MRF_UNIT_MAP).map(([id, name]) => (
+														<SelectItem key={id} value={id}>
+															{id} - {name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormDescription>
+											Select the MRF unit this Gram Panchayat is mapped to, or
+											leave as "Not Mapped"
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
 
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="new-mrfUnitId">MRF Unit</Label>
-                <Select name="mrfUnitId" defaultValue="none">
-                  <SelectTrigger id="new-mrfUnitId" className="w-full">
-                    <SelectValue placeholder="Select MRF Unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not Mapped</SelectItem>
-                    <SelectItem value="MRF-001">MRF-001 - Anjanapura MRF Unit</SelectItem>
-                    <SelectItem value="MRF-002">MRF-002 - Chikkaballapura MRF Unit</SelectItem>
-                    <SelectItem value="MRF-003">MRF-003 - Hosakote MRF Unit</SelectItem>
-                    <SelectItem value="MRF-004">MRF-004 - Kanakapura MRF Unit</SelectItem>
-                    <SelectItem value="MRF-005">MRF-005 - Nelamangala MRF Unit</SelectItem>
-                    <SelectItem value="MRF-006">MRF-006 - Ramanagara MRF Unit</SelectItem>
-                    <SelectItem value="MRF-007">MRF-007 - Devanahalli MRF Unit</SelectItem>
-                    <SelectItem value="MRF-008">MRF-008 - Hoskote MRF Unit</SelectItem>
-                    <SelectItem value="MRF-009">MRF-009 - Kolar MRF Unit</SelectItem>
-                    <SelectItem value="MRF-010">MRF-010 - Chintamani MRF Unit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="performance" className="flex flex-col gap-4 mt-4">
-              <div className="text-muted-foreground mb-2 text-sm">
-                Performance metrics are generated by the Gram Panchayat and will start at 0. They cannot be set during creation.
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-households">Households</Label>
-                  <Input
-                    id="new-households"
-                    name="households"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-shops">Shops</Label>
-                  <Input
-                    id="new-shops"
-                    name="shops"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-institutions">Institutions</Label>
-                  <Input
-                    id="new-institutions"
-                    name="institutions"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-swmSheds">SWM Sheds</Label>
-                  <Input
-                    id="new-swmSheds"
-                    name="swmSheds"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-wetWaste">Wet Waste (kg)</Label>
-                  <Input
-                    id="new-wetWaste"
-                    name="wetWaste"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-dryWaste">Dry Waste (kg)</Label>
-                  <Input
-                    id="new-dryWaste"
-                    name="dryWaste"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-sanitaryWaste">Sanitary Waste (kg)</Label>
-                  <Input
-                    id="new-sanitaryWaste"
-                    name="sanitaryWaste"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-revenue">Revenue (₹)</Label>
-                  <Input
-                    id="new-revenue"
-                    name="revenue"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Label htmlFor="new-complianceScore">Compliance Score (%)</Label>
-                  <Input
-                    id="new-complianceScore"
-                    name="complianceScore"
-                    type="number"
-                    defaultValue={0}
-                    disabled
-                    className="bg-muted"
-                    readOnly
-                    min={0}
-                    max={100}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </form>
-        <DrawerFooter>
-          <Button
-            type="submit"
-            form="add-gram-panchayat-form"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Creating..." : "Create"}
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" disabled={isSubmitting}>
-              Cancel
-            </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  )
+						<DrawerFooter className="mt-4 px-0 sm:px-0">
+							<Button
+								type="submit"
+								disabled={form.formState.isSubmitting}
+								aria-label="Create Gram Panchayat"
+							>
+								{form.formState.isSubmitting ? "Creating..." : "Create"}
+							</Button>
+							<DrawerClose asChild>
+								<Button
+									variant="outline"
+									disabled={form.formState.isSubmitting}
+									aria-label="Cancel and close dialog"
+								>
+									Cancel
+								</Button>
+							</DrawerClose>
+						</DrawerFooter>
+					</form>
+				</Form>
+			</DrawerContent>
+		</Drawer>
+	);
 }
-
