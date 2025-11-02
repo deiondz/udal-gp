@@ -7,14 +7,23 @@ import { createRouteMatcher } from './utils/create-route-matcher'
 
 
 const isProtectedRoute = createRouteMatcher(['/dashboard/:path*', '/account/:path*'])
-const isPublicRoute = createRouteMatcher(['/auth/login', '/auth/signup', '/'])
+const isPublicRoute = createRouteMatcher(['/auth/sign-in', '/auth/signup', '/'])
+const isDisabledRoute = createRouteMatcher([
+    // Add routes here that should be disabled (return 404)
+    // Example: '/old-page', '/legacy/:path*'
+])
 
 export async function proxy(req: NextRequest) {
     const session = await auth.api.getSession({ headers: req.headers })
 
+    // Return 404 for disabled routes
+    if (isDisabledRoute(req)) {
+        return new NextResponse(null, { status: 404 })
+    }
+
     // Redirect unauthenticated users away from protected routes
     if (isProtectedRoute(req) && !session) {
-        return NextResponse.redirect(new URL('/auth/login', req.url))
+        return NextResponse.redirect(new URL('/auth/sign-in', req.url))
     }
 
     // Redirect logged-in users away from auth pages

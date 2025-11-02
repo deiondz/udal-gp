@@ -17,15 +17,22 @@ import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { authClient } from "~/lib/auth-client";
 
-const loginSchema = z.object({
-	email: z.string().email("Please enter a valid email address"),
-	password: z.string().min(1, "Password is required"),
-	rememberMe: z.boolean().optional(),
-});
+const signUpSchema = z
+	.object({
+		email: z.string().email("Please enter a valid email address"),
+		password: z.string().min(8, "Password must be at least 8 characters"),
+		confirmPassword: z
+			.string()
+			.min(8, "Password must be at least 8 characters"),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"],
+	});
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
-export function LoginForm({
+export function SignUpForm({
 	className,
 	...props
 }: React.ComponentProps<"form">) {
@@ -34,6 +41,7 @@ export function LoginForm({
 	const [errors, setErrors] = React.useState<{
 		email?: string;
 		password?: string;
+		confirmPassword?: string;
 	}>({});
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -41,14 +49,14 @@ export function LoginForm({
 		setErrors({});
 
 		const formData = new FormData(e.currentTarget);
-		const data: LoginFormData = {
+		const data: SignUpFormData = {
 			email: formData.get("email") as string,
 			password: formData.get("password") as string,
-			rememberMe: formData.get("rememberMe") === "on",
+			confirmPassword: formData.get("confirmPassword") as string,
 		};
 
 		// Validate with Zod
-		const validationResult = loginSchema.safeParse(data);
+		const validationResult = signUpSchema.safeParse(data);
 
 		if (!validationResult.success) {
 			const fieldErrors: typeof errors = {};
@@ -61,20 +69,20 @@ export function LoginForm({
 
 		startTransition(async () => {
 			try {
-				const { data: signInData, error } = await authClient.signIn.email({
+				const { data: signUpData, error } = await authClient.signUp.email({
 					email: validationResult.data.email,
 					password: validationResult.data.password,
-					rememberMe: validationResult.data.rememberMe ?? false,
+					name: validationResult.data.email,
 				});
 
 				if (error) {
-					toast.error(error.message || "Failed to sign in. Please try again.");
+					toast.error(error.message || "Failed to sign up. Please try again.");
 					return;
 				}
 
-				if (signInData?.user) {
-					toast.success("Signed in successfully!");
-					// Redirect to dashboard after successful sign in
+				if (signUpData?.user) {
+					toast.success("Account created successfully!");
+					// Redirect to dashboard after successful sign up
 					router.push("/dashboard");
 					router.refresh();
 				}
@@ -96,9 +104,9 @@ export function LoginForm({
 		>
 			<FieldGroup>
 				<div className="flex flex-col items-center gap-1 text-center">
-					<h1 className="text-2xl font-bold">Login to your account</h1>
+					<h1 className="text-2xl font-bold">Create an account</h1>
 					<p className="text-muted-foreground text-sm text-balance">
-						Enter your email below to login to your account
+						Enter your email below to create your account
 					</p>
 				</div>
 
@@ -124,15 +132,7 @@ export function LoginForm({
 				</Field>
 
 				<Field data-invalid={!!errors.password}>
-					<div className="flex items-center">
-						<FieldLabel htmlFor="password">Password</FieldLabel>
-						<a
-							href="/forgot-password"
-							className="ml-auto text-sm underline-offset-4 hover:underline"
-						>
-							Forgot your password?
-						</a>
-					</div>
+					<FieldLabel htmlFor="password">Password</FieldLabel>
 					<FieldContent>
 						<Input
 							id="password"
@@ -151,27 +151,43 @@ export function LoginForm({
 					</FieldContent>
 				</Field>
 
-				<Field orientation="horizontal">
+				<Field data-invalid={!!errors.confirmPassword}>
+					<FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
 					<FieldContent>
-						<div className="flex items-center gap-2">
-							<input
-								id="rememberMe"
-								name="rememberMe"
-								type="checkbox"
-								className="h-4 w-4 rounded border-input accent-primary"
+						<Input
+							id="confirmPassword"
+							name="confirmPassword"
+							type="password"
+							required
+							aria-invalid={!!errors.confirmPassword}
+							aria-describedby={
+								errors.confirmPassword ? "confirmPassword-error" : undefined
+							}
+						/>
+						{errors.confirmPassword && (
+							<FieldError
+								id="confirmPassword-error"
+								errors={[{ message: errors.confirmPassword }]}
 							/>
-							<FieldLabel htmlFor="rememberMe" className="cursor-pointer">
-								Remember me
-							</FieldLabel>
-						</div>
+						)}
 					</FieldContent>
 				</Field>
 
 				<Field>
 					<Button type="submit" disabled={isPending}>
-						{isPending ? "Signing in..." : "Login"}
+						{isPending ? "Creating account..." : "Sign Up"}
 					</Button>
 				</Field>
+
+				<div className="text-center text-sm">
+					Already have an account?{" "}
+					<a
+						href="/auth/sign-in"
+						className="underline-offset-4 hover:underline"
+					>
+						Sign in
+					</a>
+				</div>
 			</FieldGroup>
 		</form>
 	);

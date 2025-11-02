@@ -9,7 +9,8 @@ const db = await getDb();
 
 export const auth = betterAuth({
     emailAndPassword: {
-        enabled: true
+        enabled: true,
+        disableSignUp: false
     },
     secret: env.BETTER_AUTH_SECRET,
     database: mongodbAdapter(db, {
