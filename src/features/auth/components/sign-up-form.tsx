@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
 	Field,
@@ -19,6 +20,7 @@ import { authClient } from "~/lib/auth-client";
 
 const signUpSchema = z
 	.object({
+		name: z.string().min(2, "Name must be at least 2 characters"),
 		email: z.string().email("Please enter a valid email address"),
 		password: z.string().min(8, "Password must be at least 8 characters"),
 		confirmPassword: z
@@ -38,7 +40,10 @@ export function SignUpForm({
 }: React.ComponentProps<"form">) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
+	const [showPassword, setShowPassword] = React.useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 	const [errors, setErrors] = React.useState<{
+		name?: string;
 		email?: string;
 		password?: string;
 		confirmPassword?: string;
@@ -50,6 +55,7 @@ export function SignUpForm({
 
 		const formData = new FormData(e.currentTarget);
 		const data: SignUpFormData = {
+			name: formData.get("name") as string,
 			email: formData.get("email") as string,
 			password: formData.get("password") as string,
 			confirmPassword: formData.get("confirmPassword") as string,
@@ -72,7 +78,7 @@ export function SignUpForm({
 				const { data: signUpData, error } = await authClient.signUp.email({
 					email: validationResult.data.email,
 					password: validationResult.data.password,
-					name: validationResult.data.email,
+					name: validationResult.data.name,
 				});
 
 				if (error) {
@@ -103,12 +109,32 @@ export function SignUpForm({
 			{...props}
 		>
 			<FieldGroup>
-				<div className="flex flex-col items-center gap-1 text-center">
-					<h1 className="text-2xl font-bold">Create an account</h1>
-					<p className="text-muted-foreground text-sm text-balance">
-						Enter your email below to create your account
+				<div className="flex flex-col items-center gap-2 text-center">
+					<h1 className="text-3xl font-bold tracking-tight">
+						Create your account
+					</h1>
+					<p className="text-muted-foreground text-sm">
+						Join us today and get started in seconds
 					</p>
 				</div>
+
+				<Field data-invalid={!!errors.name}>
+					<FieldLabel htmlFor="name">Full Name</FieldLabel>
+					<FieldContent>
+						<Input
+							id="name"
+							name="name"
+							type="text"
+							placeholder="John Doe"
+							required
+							aria-invalid={!!errors.name}
+							aria-describedby={errors.name ? "name-error" : undefined}
+						/>
+						{errors.name && (
+							<FieldError id="name-error" errors={[{ message: errors.name }]} />
+						)}
+					</FieldContent>
+				</Field>
 
 				<Field data-invalid={!!errors.email}>
 					<FieldLabel htmlFor="email">Email</FieldLabel>
@@ -134,14 +160,31 @@ export function SignUpForm({
 				<Field data-invalid={!!errors.password}>
 					<FieldLabel htmlFor="password">Password</FieldLabel>
 					<FieldContent>
-						<Input
-							id="password"
-							name="password"
-							type="password"
-							required
-							aria-invalid={!!errors.password}
-							aria-describedby={errors.password ? "password-error" : undefined}
-						/>
+						<div className="relative">
+							<Input
+								id="password"
+								name="password"
+								type={showPassword ? "text" : "password"}
+								placeholder="Enter your password"
+								required
+								aria-invalid={!!errors.password}
+								aria-describedby={
+									errors.password ? "password-error" : undefined
+								}
+							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(!showPassword)}
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+								aria-label={showPassword ? "Hide password" : "Show password"}
+							>
+								{showPassword ? (
+									<EyeOff className="h-4 w-4" />
+								) : (
+									<Eye className="h-4 w-4" />
+								)}
+							</button>
+						</div>
 						{errors.password && (
 							<FieldError
 								id="password-error"
@@ -154,16 +197,33 @@ export function SignUpForm({
 				<Field data-invalid={!!errors.confirmPassword}>
 					<FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
 					<FieldContent>
-						<Input
-							id="confirmPassword"
-							name="confirmPassword"
-							type="password"
-							required
-							aria-invalid={!!errors.confirmPassword}
-							aria-describedby={
-								errors.confirmPassword ? "confirmPassword-error" : undefined
-							}
-						/>
+						<div className="relative">
+							<Input
+								id="confirmPassword"
+								name="confirmPassword"
+								type={showConfirmPassword ? "text" : "password"}
+								placeholder="Re-enter your password"
+								required
+								aria-invalid={!!errors.confirmPassword}
+								aria-describedby={
+									errors.confirmPassword ? "confirmPassword-error" : undefined
+								}
+							/>
+							<button
+								type="button"
+								onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+								className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+								aria-label={
+									showConfirmPassword ? "Hide password" : "Show password"
+								}
+							>
+								{showConfirmPassword ? (
+									<EyeOff className="h-4 w-4" />
+								) : (
+									<Eye className="h-4 w-4" />
+								)}
+							</button>
+						</div>
 						{errors.confirmPassword && (
 							<FieldError
 								id="confirmPassword-error"
@@ -174,16 +234,16 @@ export function SignUpForm({
 				</Field>
 
 				<Field>
-					<Button type="submit" disabled={isPending}>
+					<Button type="submit" disabled={isPending} className="w-full">
 						{isPending ? "Creating account..." : "Sign Up"}
 					</Button>
 				</Field>
 
-				<div className="text-center text-sm">
+				<div className="text-center text-sm text-muted-foreground">
 					Already have an account?{" "}
 					<a
 						href="/auth/sign-in"
-						className="underline-offset-4 hover:underline"
+						className="font-semibold text-foreground underline-offset-4 hover:underline"
 					>
 						Sign in
 					</a>
