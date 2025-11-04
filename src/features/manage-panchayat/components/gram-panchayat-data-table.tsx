@@ -165,33 +165,8 @@ const columns: ColumnDef<GramPanchayat>[] = [
 			);
 		},
 	},
-	{
-		accessorKey: "complianceScore",
-		header: () => <div className="w-full text-right">Compliance</div>,
-		cell: ({ row }) => {
-			const score = row.original.complianceScore;
-			const getColor = (score: number) => {
-				if (score >= 80) return "text-green-600 dark:text-green-400";
-				if (score >= 60) return "text-yellow-600 dark:text-yellow-400";
-				return "text-red-600 dark:text-red-400";
-			};
-			return (
-				<div className="flex items-center justify-end gap-2">
-					<div className="flex flex-col">
-						<span className={`text-sm font-medium ${getColor(score)}`}>
-							{score}%
-						</span>
-						<div className="h-1 w-16 rounded-full bg-muted">
-							<div
-								className={`h-full rounded-full ${getColor(score)}`}
-								style={{ width: `${score}%`, backgroundColor: "currentColor" }}
-							/>
-						</div>
-					</div>
-				</div>
-			);
-		},
-	},
+	// Compliance Score column removed - now in PerformanceMetrics model
+	// TODO: Fetch latest performance metrics to display compliance score
 	{
 		id: "actions",
 		cell: ({ row }) => {

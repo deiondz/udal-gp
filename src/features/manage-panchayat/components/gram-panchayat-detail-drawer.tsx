@@ -230,7 +230,13 @@ export function GramPanchayatDetailDrawer({
 								<Input
 									id="dateCreated"
 									type="date"
-									defaultValue={item.dateCreated}
+									defaultValue={
+										typeof item.dateCreated === "string"
+											? item.dateCreated
+											: item.dateCreated instanceof Date
+												? item.dateCreated.toISOString().split("T")[0]
+												: new Date().toISOString().split("T")[0]
+									}
 									disabled
 									className="bg-muted"
 								/>
@@ -301,86 +307,15 @@ export function GramPanchayatDetailDrawer({
 
 							<Separator />
 
-							<div className="grid grid-cols-3 gap-4">
-								<div className="flex flex-col gap-3">
-									<Label htmlFor="wetWaste">Wet Waste (kg)</Label>
-									<Input
-										id="wetWaste"
-										name="wetWaste"
-										type="number"
-										defaultValue={item.wetWaste}
-										disabled
-										className="bg-muted"
-										readOnly
-									/>
-								</div>
-								<div className="flex flex-col gap-3">
-									<Label htmlFor="dryWaste">Dry Waste (kg)</Label>
-									<Input
-										id="dryWaste"
-										name="dryWaste"
-										type="number"
-										defaultValue={item.dryWaste}
-										disabled
-										className="bg-muted"
-										readOnly
-									/>
-								</div>
-								<div className="flex flex-col gap-3">
-									<Label htmlFor="sanitaryWaste">Sanitary Waste (kg)</Label>
-									<Input
-										id="sanitaryWaste"
-										name="sanitaryWaste"
-										type="number"
-										defaultValue={item.sanitaryWaste}
-										disabled
-										className="bg-muted"
-										readOnly
-									/>
-								</div>
+							{/* Performance Metrics section - TODO: Fetch from PerformanceMetrics model */}
+							<div className="text-sm text-muted-foreground">
+								Performance metrics (wetWaste, dryWaste, sanitaryWaste, revenue,
+								complianceScore) are now stored separately in the
+								PerformanceMetrics collection. This section will be updated to
+								fetch and display the latest metrics.
 							</div>
 
-							<Separator />
-
-							<div className="grid grid-cols-2 gap-4">
-								<div className="flex flex-col gap-3">
-									<Label htmlFor="revenue">Revenue (₹)</Label>
-									<Input
-										id="revenue"
-										name="revenue"
-										type="number"
-										defaultValue={item.revenue}
-										disabled
-										className="bg-muted"
-										readOnly
-									/>
-								</div>
-								<div className="flex flex-col gap-3">
-									<Label htmlFor="complianceScore">Compliance Score (%)</Label>
-									<Input
-										id="complianceScore"
-										name="complianceScore"
-										type="number"
-										min="0"
-										max="100"
-										defaultValue={item.complianceScore}
-										disabled
-										className="bg-muted"
-										readOnly
-									/>
-								</div>
-							</div>
-
-							<div className="flex flex-col gap-3">
-								<Label htmlFor="lastUpdated">Last Updated</Label>
-								<Input
-									id="lastUpdated"
-									type="date"
-									defaultValue={item.lastUpdated}
-									disabled
-									className="bg-muted"
-								/>
-							</div>
+							{/* Last Updated - TODO: Fetch from latest PerformanceMetrics record */}
 						</TabsContent>
 					</Tabs>
 				</form>

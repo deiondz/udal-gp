@@ -95,16 +95,11 @@ export function AddGramPanchayatDialog({
 			mrfUnitName:
 				mrfMapped && mrfUnitId ? (MRF_UNIT_MAP[mrfUnitId] ?? null) : null,
 			mrfMapped,
-			// Performance metrics initialized to 0 for new entries
+			// Static fields for new entries
 			households: 0,
 			shops: 0,
 			institutions: 0,
 			swmSheds: 0,
-			wetWaste: 0,
-			dryWaste: 0,
-			sanitaryWaste: 0,
-			revenue: 0,
-			complianceScore: 0,
 		};
 
 		const requestData: CreateGramPanchayatRequest = {
